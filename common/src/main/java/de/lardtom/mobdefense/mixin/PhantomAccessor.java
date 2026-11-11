@@ -1,0 +1,23 @@
+package de.lardtom.mobdefense.mixin;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.monster.Phantom;
+import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
+
+@Mixin(Phantom.class)
+public interface PhantomAccessor {
+    @Accessor("moveTargetPoint")
+    Vec3 mobdefense$moveTargetPoint();
+
+    @Accessor("moveTargetPoint")
+    void mobdefense$setMoveTargetPoint(Vec3 point);
+
+    @Accessor("anchorPoint")
+    @Nullable BlockPos mobdefense$anchorPoint();
+
+    @Accessor("anchorPoint")
+    void mobdefense$setAnchorPoint(@Nullable BlockPos point);
+}

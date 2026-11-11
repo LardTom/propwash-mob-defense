@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "propwash_accessory",
+  "key": {
+    "N": "minecraft:iron_nugget",
+    "P": "propwash:carbon_plate"
+  },
+  "pattern": [
+    "N N",
+    "PPP"
+  ],
+  "result": {
+    "id": "mobdefense:spear_mount"
+  }
+}

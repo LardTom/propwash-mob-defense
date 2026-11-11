@@ -1,0 +1,59 @@
+{
+  "channels": {
+    "frame": 200,
+    "tpu": 242,
+    "motor": 208,
+    "prop": 224,
+    "stack": 200,
+    "battery": 200,
+    "camera": 232,
+    "antenna": 230,
+    "accessory": 200
+  },
+  "slots": [
+    "frame",
+    "tpu",
+    "motors",
+    "prop_fl",
+    "prop_fr",
+    "prop_rl",
+    "prop_rr",
+    "stack",
+    "battery",
+    "camera",
+    "antenna",
+    "accessories"
+  ],
+  "models": {
+    "accessory/dispenser_mount": [
+      {
+        "channel": "tpu",
+        "base": "#262628"
+      },
+      {
+        "channel": "accessory",
+        "base": "#6aa336"
+      }
+    ],
+    "accessory/rocket_booster": [
+      {
+        "channel": "tpu",
+        "base": "#262628"
+      },
+      {
+        "channel": "accessory",
+        "base": "#6aa336"
+      }
+    ],
+    "accessory/spear_mount": [
+      {
+        "channel": "tpu",
+        "base": "#d6333a"
+      },
+      {
+        "channel": "accessory",
+        "base": "#6aa336"
+      }
+    ]
+  }
+}

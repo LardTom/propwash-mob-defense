@@ -1,0 +1,10 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "LicenseRef-PolyForm-Shield-1.0.0"
+
+[[mods]]
+modId = "mobdefense_jointest"
+version = "1.0.0"
+displayName = "Mob Defense join test client"
+authors = "lardtom"
+description = '''Development helper: joins a server without Propwash: Mob Defense and records what the player sees.'''

@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "mass_g": 150.0,
+  "slot": "front",
+  "size_mm": [62.0, 58.0, 64.0],
+  "recess_mm": 58.0,
+  "drop_mm": 1.0,
+  "flight_battery_w": 1.2,
+  "frontal_area_m2": 0.0036,
+  "sort": 0
+}

@@ -1,0 +1,17 @@
+{
+  "values": [
+    "minecraft:water_bucket",
+    "minecraft:lava_bucket",
+    "minecraft:powder_snow_bucket",
+    "minecraft:axolotl_bucket",
+    "minecraft:cod_bucket",
+    "minecraft:pufferfish_bucket",
+    "minecraft:salmon_bucket",
+    "minecraft:tadpole_bucket",
+    "minecraft:tropical_fish_bucket",
+    {"id": "#c:buckets/water", "required": false},
+    {"id": "#c:buckets/lava", "required": false},
+    {"id": "#c:buckets/powder_snow", "required": false},
+    {"id": "#c:buckets/entity_water", "required": false}
+  ]
+}

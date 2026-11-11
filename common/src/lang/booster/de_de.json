@@ -1,0 +1,7 @@
+{
+  "mobdefense.action.booster.ignite": "Booster zünden",
+  "mobdefense.help.rocket_booster.what.1": "TPU-Wiege für eine Feuerwerksrakete oben auf dem Rahmen.",
+  "mobdefense.help.rocket_booster.what.2": "Schiebt mit 2 g entlang der Nase, gleich für jede Drohnengröße (höchstens 60 N).",
+  "mobdefense.help.rocket_booster.what.3": "Brennt 1,25 / 1,75 / 2,25 s bei Flugdauer 1 / 2 / 3.",
+  "mobdefense.help.rocket_booster.what.4": "Raketen mit Sternen explodieren am Ende – das trifft auch die Drohne."
+}

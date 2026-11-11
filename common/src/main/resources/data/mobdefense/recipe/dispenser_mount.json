@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "propwash_accessory",
+  "key": {
+    "B": "propwash:circuit_board",
+    "N": "minecraft:iron_nugget",
+    "D": "minecraft:dispenser",
+    "C": "propwash:copper_coil"
+  },
+  "pattern": [
+    " B ",
+    "NDN",
+    " C "
+  ],
+  "result": {
+    "id": "mobdefense:dispenser_mount"
+  }
+}

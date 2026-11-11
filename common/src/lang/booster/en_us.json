@@ -1,0 +1,7 @@
+{
+  "mobdefense.action.booster.ignite": "Ignite booster",
+  "mobdefense.help.rocket_booster.what.1": "TPU cradle for one firework rocket on top of the frame.",
+  "mobdefense.help.rocket_booster.what.2": "Pushes along the nose at 2 g for any drone size (at most 60 N).",
+  "mobdefense.help.rocket_booster.what.3": "Burns 1.25 / 1.75 / 2.25 s for flight duration 1 / 2 / 3.",
+  "mobdefense.help.rocket_booster.what.4": "Rockets with stars explode at the end – that hits the drone too."
+}

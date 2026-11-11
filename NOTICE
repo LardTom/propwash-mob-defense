@@ -1,0 +1,24 @@
+Propwash: Mob Defense
+Copyright (c) 2026 lardtom
+
+Required Notice: Copyright (c) 2026 lardtom
+
+Propwash: Mob Defense is an official add-on for Propwash FPV and is licensed in two parts:
+
+- Core (everything not listed in LICENSE-MIT): PolyForm Shield License 1.0.0 with additional permissions (modpacks,
+  exit clause), see LICENSE.
+- Documentation: MIT License, see LICENSE-MIT.
+
+If you pass on any part of Propwash: Mob Defense, for example in a modpack, pass on LICENSE, LICENSE-MIT and this
+NOTICE with it (or their web addresses), including the "Required Notice" line above.
+
+The namespace "propwash" belongs to Propwash FPV. This add-on uses its own namespace "mobdefense".
+
+
+Third-party material in the source repository
+
+- Gradle Wrapper (gradlew, gradlew.bat, gradle/wrapper/): Copyright the original authors, Apache License 2.0
+  (https://www.apache.org/licenses/LICENSE-2.0). Not part of the release files.
+
+
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.

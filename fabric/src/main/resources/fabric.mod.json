@@ -1,0 +1,40 @@
+{
+    "schemaVersion": 1,
+    "id": "${mod_id}",
+    "version": "${version}",
+    "name": "${mod_name}",
+    "description": "${description}",
+    "authors": [
+        "${mod_author}"
+    ],
+    "contact": {
+        "homepage": "${homepage_url}"
+    },
+    "license": "${license}",
+    "icon": "assets/${mod_id}/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "de.lardtom.mobdefense.fabric.MobDefenseFabric"
+        ],
+        "client": [
+            "de.lardtom.mobdefense.fabric.client.MobDefenseFabricClient"
+        ]
+    },
+    "mixins": [
+        "${mod_id}.mob.mixins.json",
+        "${mod_id}.dispenser.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=${fabric_loader_version}",
+        "fabric-api": ">=${fabric_version}",
+        "minecraft": "~${minecraft_version}",
+        "java": ">=${java_version}",
+        "propwash": "${propwash_fabric_range}"
+    },
+    "custom": {
+        "modmenu": {
+            "parent": "propwash"
+        }
+    }
+}

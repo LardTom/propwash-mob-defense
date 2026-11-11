@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "kind": "propwash_share_baseline",
+  "namespaces": {
+    "mobdefense": {
+      "accessory": [
+        "dispenser_mount",
+        "spear_mount",
+        "rocket_booster"
+      ]
+    }
+  }
+}

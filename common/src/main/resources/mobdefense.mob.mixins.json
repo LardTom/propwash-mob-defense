@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "de.lardtom.mobdefense.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": ["MobAccessor", "PhantomAccessor", "CreakingMixin", "CubeMobMoveControlAccessor", "ShulkerAccessor"],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

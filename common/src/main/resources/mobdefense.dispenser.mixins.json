@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "de.lardtom.mobdefense.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "AbstractThrownPotionMixin",
+    "PrimedTntMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

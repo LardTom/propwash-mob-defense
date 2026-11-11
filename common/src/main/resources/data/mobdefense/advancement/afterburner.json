@@ -1,0 +1,25 @@
+{
+  "parent": "mobdefense:root",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.mobdefense.afterburner.description"
+    },
+    "frame": "task",
+    "icon": {
+      "id": "minecraft:firework_rocket"
+    },
+    "title": {
+      "translate": "advancements.mobdefense.afterburner.title"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "mobdefense:part/accessory/spear_mount_paint",
+    "tints": [
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 0,
+        "default": 14759485
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 1,
+        "default": 8900677
+      }
+    ]
+  }
+}

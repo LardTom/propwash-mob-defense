@@ -1,0 +1,25 @@
+{
+  "parent": "mobdefense:root",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.mobdefense.air_support.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "minecraft:splash_potion"
+    },
+    "title": {
+      "translate": "advancements.mobdefense.air_support.title"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

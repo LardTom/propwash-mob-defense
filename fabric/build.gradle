@@ -1,0 +1,425 @@
+plugins {
+    id 'multiloader-loader'
+    id 'net.fabricmc.fabric-loom'
+}
+
+dependencies {
+    minecraft("com.mojang:minecraft:${minecraft_version}")
+    implementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
+    implementation("de.lardtom:propwash-fabric-${minecraft_version}:${propwash_version}")
+}
+
+loom {
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.devtest
+        }
+    }
+    runs {
+        client {
+            client()
+            setConfigName('Fabric Client')
+            ideConfigGenerated(true)
+            runDir(rootProject.mdRunDirs.client)
+        }
+        server {
+            server()
+            setConfigName('Fabric Server')
+            ideConfigGenerated(true)
+            runDir(rootProject.mdRunDirs.server)
+        }
+        clientSelftest {
+            client()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Client Selftest')
+            ideConfigGenerated(true)
+            runDir(rootProject.mdRunDirs.selftest)
+            property('mobdefense.selftest', 'true')
+            if (project.hasProperty('mdScreenshots')) {
+                property('mobdefense.screenshots', rootProject.file('docs/screenshots').absolutePath)
+            }
+        }
+        clientSmoke {
+            client()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Client Smoke')
+            ideConfigGenerated(true)
+            runDir(rootProject.mdRunDirs.smoke)
+            property('mobdefense.smoketest', 'true')
+        }
+        serverSmoke {
+            server()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Server Smoke')
+            ideConfigGenerated(true)
+            runDir(rootProject.mdRunDirs.serverSmoke)
+            property('mobdefense.serversmoke', 'true')
+        }
+        webExport {
+            server()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Web Export')
+            ideConfigGenerated(true)
+            runDir(rootProject.mdRunDirs.webExport)
+            property('mobdefense.webexport', rootProject.mdWebExportDir.absolutePath)
+        }
+    }
+}
+
+tasks.matching { it.name in ['runClient', 'runServer', 'runClientSelftest', 'runClientSmoke'] }.configureEach {
+    dependsOn(rootProject.tasks.named('prepareRuns'))
+}
+tasks.matching { it.name in ['runServerSmoke', 'runWebExport'] }.configureEach {
+    dependsOn(rootProject.tasks.named('prepareServerSmoke'))
+}
+
+tasks.matching { it.name in ['runClientSelftest', 'runClientSmoke', 'runServerSmoke', 'runWebExport'] }.configureEach {
+    doFirst {
+        sourceSets.devtest.output.resourcesDir.mkdirs()
+    }
+}
+
+[runClientSelftest: [dir: rootProject.mdRunDirs.selftest, label: 'Selbsttest (Fabric)'],
+ runClientSmoke   : [dir: rootProject.mdRunDirs.smoke, label: 'Rauchtest (Fabric)'],
+ runServerSmoke   : [dir: rootProject.mdRunDirs.serverSmoke, label: 'Server-Rauchtest (Fabric)', scanLog: true],
+ runWebExport     : [dir: rootProject.mdRunDirs.webExport, label: 'Web-Export (Fabric)', scanLog: true]].each { taskName, cfg ->
+    tasks.matching { it.name == taskName }.configureEach { task ->
+        def resultFile = file("${cfg.dir}/mobdefense-selftest-result.txt")
+        task.group = 'mobdefense'
+        task.doFirst { resultFile.delete() }
+        task.doLast {
+            if (!resultFile.exists()) {
+                throw new GradleException("${cfg.label}: keine Ergebnisdatei – Spiel abgestürzt oder vorzeitig beendet?")
+            }
+            def result = resultFile.getText('UTF-8').trim()
+            if (!result.startsWith('PASS')) {
+                throw new GradleException("${cfg.label} fehlgeschlagen: ${result}")
+            }
+            if (cfg.scanLog) {
+                def logFile = file("${cfg.dir}/logs/latest.log")
+                if (!logFile.exists()) {
+                    throw new GradleException("${cfg.label}: kein logs/latest.log")
+                }
+                def bad = logFile.readLines('UTF-8').findAll { line ->
+                    line =~ /\/(ERROR|FATAL)\]/ || line.contains('MixinApplyError') || line.contains('InvalidMixinException') ||
+                            line.contains('InvalidInjectionException') || line.contains('Mixin apply failed')
+                }
+                if (!bad.isEmpty()) {
+                    throw new GradleException("${cfg.label}: ${bad.size()} Fehlerzeilen im Log, erste: ${bad.first()}")
+                }
+            }
+            logger.lifecycle("${cfg.label}: ${result}")
+        }
+    }
+}
+
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements', 'includeInternal', 'modCompileClasspath'].each { variant ->
+    configurations.named(variant) {
+        attributes {
+            attribute(loaderAttribute, 'fabric')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant ->
+        configurations.named(variant) {
+            attributes {
+                attribute(loaderAttribute, 'fabric')
+            }
+        }
+    }
+}
+
+loom {
+    runs {
+        clientSelftest {
+            def only = project.findProperty('mobdefenseSelftestOnly')?.toString()?.trim()
+            if (only) {
+                property('mobdefense.selftest.only', only)
+            }
+            if (project.hasProperty('mobdefenseScreenshots')) {
+                def shots = project.findProperty('mobdefenseScreenshots')?.toString()?.trim()
+                property('mobdefense.screenshots', !shots || shots == 'true' ? 'true' : rootProject.file(shots).absolutePath)
+            }
+        }
+        serverSmoke {
+            def classLog = file("${rootProject.mdRunDirs.serverSmoke}/mobdefense-classload.log").absolutePath
+            vmArg("-Xlog:class+load=info:file=${classLog}:none")
+            property('mobdefense.classlog', classLog)
+        }
+    }
+}
+
+sourceSets {
+    jointest {
+        java {
+            srcDir(rootProject.file('common/src/devtest/java'))
+            include('de/lardtom/mobdefense/dev/join/**', 'de/lardtom/mobdefense/fabric/jointest/**')
+        }
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath - sourceSets.main.output
+    }
+}
+
+loom {
+    mods {
+        mobdefense_jointest {
+            sourceSet sourceSets.jointest
+        }
+    }
+    runs {
+        clientNoAddon {
+            client()
+            source(sourceSets.jointest)
+            setConfigName('Fabric Client ohne Mob Defense')
+            ideConfigGenerated(false)
+            runDir(rootProject.mdRunDirs.noAddon)
+            property('mobdefense.jointest.noaddon', 'true')
+        }
+    }
+}
+
+tasks.matching { it.name == 'runClientNoAddon' }.configureEach { task ->
+    def resultFile = file("${rootProject.mdRunDirs.noAddon}/mobdefense-selftest-result.txt")
+    task.group = 'mobdefense'
+    task.dependsOn(rootProject.tasks.named('prepareRuns'))
+    task.doFirst { resultFile.delete() }
+    task.doLast {
+        if (!resultFile.exists()) {
+            throw new GradleException('Beitrittstest ohne Mob Defense (Fabric): keine Ergebnisdatei – Spiel abgestürzt oder vorzeitig beendet?')
+        }
+        def result = resultFile.getText('UTF-8').trim()
+        if (!result.startsWith('PASS')) {
+            throw new GradleException("Beitrittstest ohne Mob Defense (Fabric) fehlgeschlagen: ${result}")
+        }
+        logger.lifecycle("Beitrittstest ohne Mob Defense (Fabric): ${result}")
+    }
+}
+
+tasks.named('check') {
+    dependsOn('compileJointestJava')
+}
+
+ext.mdD8Dir = 'runs/d8-server'
+
+class MdD8Stop extends InputStream {
+    private final File log
+    private long start = -1L
+    private final long settleMillis
+    private final long limitMillis
+    private byte[] bytes
+    private int index
+
+    MdD8Stop(File log, long settleMillis, long limitMillis) {
+        this.log = log
+        this.settleMillis = settleMillis
+        this.limitMillis = limitMillis
+    }
+
+    @Override
+    int read() {
+        if (bytes == null) {
+            start = System.currentTimeMillis()
+            long done = -1L
+            while (true) {
+                long now = System.currentTimeMillis()
+                String text = done < 0 && log.exists() && log.lastModified() >= start ? log.getText('UTF-8') : ''
+                if (done < 0 && text.contains('Done (') && !text.contains('[Mob-Defense-D8]')) {
+                    done = now
+                }
+                if (done >= 0 && now - done >= settleMillis || now - start >= limitMillis) {
+                    break
+                }
+                Thread.sleep(500L)
+            }
+            bytes = 'stop\n'.getBytes('UTF-8')
+        }
+        return index < bytes.length ? (bytes[index++] & 0xff) : -1
+    }
+}
+
+tasks.register('prepareServerD8') {
+    group = 'mobdefense'
+    description = 'D8: eula.txt und server.properties für die Welt mit, ohne und wieder mit Mob Defense, alte Welt weg.'
+    def dir = file(mdD8Dir)
+    outputs.upToDateWhen { false }
+    doLast {
+        dir.mkdirs()
+        new File(dir, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        new File(dir, 'server.properties').setText([
+                'online-mode=false',
+                "server-port=${25631 + (System.getenv('PROPWASH_MC_SLOT') ?: '0').toInteger()}".toString(),
+                'level-type=minecraft\\:flat',
+                'generator-settings={"layers"\\:[{"block"\\:"minecraft\\:bedrock","height"\\:1},{"block"\\:"minecraft\\:dirt","height"\\:2},{"block"\\:"minecraft\\:grass_block","height"\\:1}],"biome"\\:"minecraft\\:plains"}',
+                'generate-structures=false',
+                'spawn-protection=16',
+                'view-distance=4',
+                'simulation-distance=4',
+                'sync-chunk-writes=true',
+        ].join('\n') + '\n', 'UTF-8')
+        new File(dir, 'world').deleteDir()
+        ['d8-prepare.properties', 'd8-noaddon.txt', 'mobdefense-selftest-result.txt'].each { new File(dir, it).delete() }
+    }
+}
+
+loom {
+    runs {
+        serverD8Prepare {
+            server()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Server D8 mit Mob Defense')
+            ideConfigGenerated(false)
+            runDir(mdD8Dir)
+            property('mobdefense.d8', 'prepare')
+        }
+        serverD8NoAddon {
+            server()
+            source(sourceSets.jointest)
+            setConfigName('Fabric Server D8 ohne Mob Defense')
+            ideConfigGenerated(false)
+            runDir(mdD8Dir)
+        }
+        serverD8Verify {
+            server()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Server D8 wieder mit Mob Defense')
+            ideConfigGenerated(false)
+            runDir(mdD8Dir)
+            property('mobdefense.d8', 'verify')
+        }
+    }
+}
+
+def mdD8Sha = { File f -> f.exists() ? java.security.MessageDigest.getInstance('SHA-256').digest(f.bytes).encodeHex().toString() : 'fehlt' }
+
+tasks.matching { it.name in ['runServerD8Prepare', 'runServerD8Verify'] }.configureEach { task ->
+    def resultFile = file("${mdD8Dir}/mobdefense-selftest-result.txt")
+    task.group = 'mobdefense'
+    task.doFirst { resultFile.delete() }
+    task.doLast {
+        if (!resultFile.exists()) {
+            throw new GradleException("D8 ${task.name}: keine Ergebnisdatei – Server abgestürzt oder vorzeitig beendet?")
+        }
+        def result = resultFile.getText('UTF-8').trim()
+        if (!result.startsWith('PASS')) {
+            throw new GradleException("D8 ${task.name} fehlgeschlagen: ${result}")
+        }
+        logger.lifecycle("D8 ${task.name}: ${result}")
+    }
+}
+
+tasks.matching { it.name == 'runServerD8Prepare' }.configureEach {
+    dependsOn('prepareServerD8')
+}
+
+tasks.matching { it.name == 'runServerD8NoAddon' }.configureEach { task ->
+    def entities = file("${mdD8Dir}/world/dimensions/minecraft/overworld/entities/r.0.0.mca")
+    def noAddon = file("${mdD8Dir}/d8-noaddon.txt")
+    def latest = file("${mdD8Dir}/logs/latest.log")
+    task.group = 'mobdefense'
+    task.mustRunAfter('runServerD8Prepare')
+    task.standardInput = new MdD8Stop(latest, 20000L, 300000L)
+    def before = [:]
+    task.doFirst {
+        noAddon.delete()
+        if (!file("${mdD8Dir}/d8-prepare.properties").exists()) {
+            throw new GradleException('D8 ohne Mob Defense: zuerst runServerD8Prepare')
+        }
+        before.sha = mdD8Sha(entities)
+    }
+    task.doLast {
+        def after = mdD8Sha(entities)
+        def lines = latest.exists() ? latest.readLines('UTF-8') : []
+        def mobDefense = lines.findAll { it.contains('Mob Defense') && it.contains('geladen') }
+        def errors = lines.findAll { it =~ /\/(ERROR|FATAL)\]/ }
+        if (!mobDefense.isEmpty()) {
+            throw new GradleException("D8 ohne Mob Defense: Mob Defense wurde doch geladen: ${mobDefense.first()}")
+        }
+        if (before.sha == after) {
+            throw new GradleException('D8 ohne Mob Defense: dimensions/minecraft/overworld/entities/r.0.0.mca unverändert, die Drohne wurde ohne das Add-on nicht geladen und gespeichert')
+        }
+        noAddon.setText(["Server ohne Mob Defense gestartet und gestoppt", "Drohnen-Chunk neu gespeichert", "${errors.size()} Fehlerzeilen im Log"].join('\n') + '\n', 'UTF-8')
+        logger.lifecycle("D8 ohne Mob Defense: Drohnen-Chunk neu gespeichert, ${errors.size()} Fehlerzeilen im Log${errors.isEmpty() ? '' : ', erste: ' + errors.first()}")
+    }
+}
+
+tasks.matching { it.name == 'runServerD8Verify' }.configureEach {
+    mustRunAfter('runServerD8NoAddon')
+}
+
+ext.mdD6Dir = 'runs/d6-server'
+
+tasks.register('prepareServerD6') {
+    group = 'mobdefense'
+    description = 'D6: eula.txt und server.properties für den Lasttest (flache Welt, keine Pause ohne Spieler), alte Welt und Ergebnisse weg.'
+    def dir = file(mdD6Dir)
+    outputs.upToDateWhen { false }
+    doLast {
+        dir.mkdirs()
+        new File(dir, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        new File(dir, 'server.properties').setText([
+                'online-mode=false',
+                "server-port=${25631 + (System.getenv('PROPWASH_MC_SLOT') ?: '0').toInteger()}".toString(),
+                'level-type=minecraft\\:flat',
+                'generator-settings={"layers"\\:[{"block"\\:"minecraft\\:bedrock","height"\\:1},{"block"\\:"minecraft\\:dirt","height"\\:2},{"block"\\:"minecraft\\:grass_block","height"\\:1}],"biome"\\:"minecraft\\:plains"}',
+                'generate-structures=false',
+                'spawn-protection=0',
+                'difficulty=normal',
+                'pause-when-empty-seconds=0',
+                'view-distance=6',
+                'simulation-distance=5',
+                'sync-chunk-writes=false',
+        ].join('\n') + '\n', 'UTF-8')
+        new File(dir, 'world').deleteDir()
+        ['mobdefense-selftest-result.txt', 'mobdefense-d6-result.txt', 'jointest.stop', 'mobdefense-classload.log'].each { new File(dir, it).delete() }
+    }
+}
+
+loom {
+    runs {
+        serverD6 {
+            server()
+            source(sourceSets.devtest)
+            setConfigName('Fabric Server D6 Last')
+            ideConfigGenerated(false)
+            runDir(mdD6Dir)
+            property('mobdefense.serversmoke', 'true')
+            property('mobdefense.d6', 'true')
+            environmentVariable('MOBDEFENSE_JOINTEST_HOLD', '900')
+            def classLog = file("${mdD6Dir}/mobdefense-classload.log").absolutePath
+            vmArg("-Xlog:class+load=info:file=${classLog}:none")
+            property('mobdefense.classlog', classLog)
+        }
+    }
+}
+
+tasks.matching { it.name == 'runServerD6' }.configureEach { task ->
+    def smokeFile = file("${mdD6Dir}/mobdefense-selftest-result.txt")
+    def resultFile = file("${mdD6Dir}/mobdefense-d6-result.txt")
+    task.group = 'mobdefense'
+    task.dependsOn('prepareServerD6')
+    task.doFirst { sourceSets.devtest.output.resourcesDir.mkdirs() }
+    task.doLast {
+        if (!resultFile.exists()) {
+            throw new GradleException('D6: keine Ergebnisdatei – Server abgestürzt oder vorzeitig beendet?')
+        }
+        def result = resultFile.getText('UTF-8').trim()
+        def smoke = smokeFile.exists() ? smokeFile.getText('UTF-8').trim() : 'fehlt'
+        def bad = file("${mdD6Dir}/logs/latest.log").readLines('UTF-8').findAll { line ->
+            line =~ /\/(ERROR|FATAL)\]/ || line.contains('MixinApplyError') || line.contains('Mixin apply failed')
+        }
+        if (!result.startsWith('PASS')) {
+            throw new GradleException("D6 fehlgeschlagen: ${result}")
+        }
+        if (!smoke.startsWith('PASS')) {
+            throw new GradleException("D6: Server-Prüfungen fehlgeschlagen: ${smoke}")
+        }
+        if (!bad.isEmpty()) {
+            throw new GradleException("D6: ${bad.size()} Fehlerzeilen im Log, erste: ${bad.first()}")
+        }
+        logger.lifecycle("D6: ${result}")
+    }
+}

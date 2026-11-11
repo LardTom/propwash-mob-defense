@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "propwash_accessory",
+  "key": {
+    "N": "minecraft:copper_nugget",
+    "F": "minecraft:flint_and_steel",
+    "P": "propwash:carbon_plate"
+  },
+  "pattern": [
+    "NFN",
+    " P "
+  ],
+  "result": {
+    "id": "mobdefense:rocket_booster"
+  }
+}

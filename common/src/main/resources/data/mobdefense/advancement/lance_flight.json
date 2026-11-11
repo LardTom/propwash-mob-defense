@@ -1,0 +1,25 @@
+{
+  "parent": "mobdefense:root",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.mobdefense.lance_flight.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "id": "minecraft:iron_spear"
+    },
+    "title": {
+      "translate": "advancements.mobdefense.lance_flight.title"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

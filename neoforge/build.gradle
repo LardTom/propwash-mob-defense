@@ -1,0 +1,412 @@
+plugins {
+    id 'multiloader-loader'
+    id 'net.neoforged.moddev'
+}
+
+dependencies {
+    implementation("de.lardtom:propwash-neoforge-${minecraft_version}:${propwash_version}")
+}
+
+neoForge {
+    version = neoforge_version
+    runs {
+        configureEach {
+            ideName = "NeoForge ${it.name.capitalize()} (${project.path})"
+        }
+        client {
+            client()
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.client))
+        }
+        clientSelftest {
+            client()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.selftest))
+            systemProperty('mobdefense.selftest', 'true')
+        }
+        clientSmoke {
+            client()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.smoke))
+            systemProperty('mobdefense.smoketest', 'true')
+        }
+        serverSmoke {
+            server()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.serverSmoke))
+            systemProperty('mobdefense.serversmoke', 'true')
+            programArgument('--nogui')
+        }
+        webExport {
+            server()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.webExport))
+            systemProperty('mobdefense.webexport', rootProject.mdWebExportDir.absolutePath)
+            programArgument('--nogui')
+        }
+        server {
+            server()
+            this.file(rootProject.mdRunDirs.server).createParentDirectories()
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.server))
+        }
+    }
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.devtest
+        }
+    }
+}
+
+tasks.matching { it.name in ['runClient', 'runServer', 'runClientSelftest', 'runClientSmoke'] }.configureEach {
+    dependsOn(rootProject.tasks.named('prepareRuns'))
+}
+tasks.matching { it.name in ['runServerSmoke', 'runWebExport'] }.configureEach {
+    dependsOn(rootProject.tasks.named('prepareServerSmoke'))
+}
+
+[runClientSelftest: [dir: rootProject.mdRunDirs.selftest, label: 'Selbsttest (NeoForge)'],
+ runClientSmoke   : [dir: rootProject.mdRunDirs.smoke, label: 'Rauchtest (NeoForge)'],
+ runServerSmoke   : [dir: rootProject.mdRunDirs.serverSmoke, label: 'Server-Rauchtest (NeoForge)', scanLog: true],
+ runWebExport     : [dir: rootProject.mdRunDirs.webExport, label: 'Web-Export (NeoForge)', scanLog: true]].each { taskName, cfg ->
+    tasks.matching { it.name == taskName }.configureEach { task ->
+        def resultFile = file("${cfg.dir}/mobdefense-selftest-result.txt")
+        task.group = 'mobdefense'
+        task.doFirst { resultFile.delete() }
+        task.doLast {
+            if (!resultFile.exists()) {
+                throw new GradleException("${cfg.label}: keine Ergebnisdatei – Spiel abgestürzt oder vorzeitig beendet?")
+            }
+            def result = resultFile.getText('UTF-8').trim()
+            if (!result.startsWith('PASS')) {
+                throw new GradleException("${cfg.label} fehlgeschlagen: ${result}")
+            }
+            if (cfg.scanLog) {
+                def logFile = file("${cfg.dir}/logs/latest.log")
+                if (!logFile.exists()) {
+                    throw new GradleException("${cfg.label}: kein logs/latest.log")
+                }
+                def bad = logFile.readLines('UTF-8').findAll { line ->
+                    line =~ /\/(ERROR|FATAL)\]/ || line.contains('MixinApplyError') || line.contains('InvalidMixinException') ||
+                            line.contains('InvalidInjectionException') || line.contains('Mixin apply failed')
+                }
+                if (!bad.isEmpty()) {
+                    throw new GradleException("${cfg.label}: ${bad.size()} Fehlerzeilen im Log, erste: ${bad.first()}")
+                }
+            }
+            logger.lifecycle("${cfg.label}: ${result}")
+        }
+    }
+}
+
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements'].each { variant ->
+    configurations.named(variant) {
+        attributes {
+            attribute(loaderAttribute, 'neoforge')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName, it.getTaskName(null, 'jarJar')].each { variant ->
+        configurations.named(variant) {
+            attributes {
+                attribute(loaderAttribute, 'neoforge')
+            }
+        }
+    }
+}
+
+neoForge {
+    runs {
+        clientSelftest {
+            def only = project.findProperty('mobdefenseSelftestOnly')?.toString()?.trim()
+            if (only) {
+                systemProperty('mobdefense.selftest.only', only)
+            }
+            if (project.hasProperty('mobdefenseScreenshots')) {
+                def shots = project.findProperty('mobdefenseScreenshots')?.toString()?.trim()
+                systemProperty('mobdefense.screenshots', !shots || shots == 'true' ? 'true' : rootProject.file(shots).absolutePath)
+            }
+        }
+        serverSmoke {
+            def classLog = file("${rootProject.mdRunDirs.serverSmoke}/mobdefense-classload.log").absolutePath
+            jvmArgument("-Xlog:class+load=info:file=${classLog}:none")
+            systemProperty('mobdefense.classlog', classLog)
+        }
+    }
+}
+
+sourceSets {
+    jointest {
+        java {
+            srcDir(rootProject.file('common/src/devtest/java'))
+            include('de/lardtom/mobdefense/dev/join/**', 'de/lardtom/mobdefense/neoforge/jointest/**')
+        }
+    }
+}
+
+dependencies {
+    jointestImplementation("de.lardtom:propwash-neoforge-${minecraft_version}:${propwash_version}")
+}
+
+neoForge {
+    addModdingDependenciesTo(sourceSets.jointest)
+    mods {
+        mobdefense_jointest {
+            sourceSet sourceSets.jointest
+        }
+    }
+    runs {
+        configureEach { run ->
+            if (run.name != 'clientNoAddon') {
+                run.loadedMods.set([neoForge.mods.getByName(mod_id)])
+            }
+        }
+        clientNoAddon {
+            client()
+            sourceSet = sourceSets.jointest
+            loadedMods = [mods.mobdefense_jointest]
+            gameDirectory = this.mkdir(this.file(rootProject.mdRunDirs.noAddon))
+            systemProperty('mobdefense.jointest.noaddon', 'true')
+        }
+    }
+}
+
+tasks.matching { it.name == 'runClientNoAddon' }.configureEach { task ->
+    def resultFile = file("${rootProject.mdRunDirs.noAddon}/mobdefense-selftest-result.txt")
+    task.group = 'mobdefense'
+    task.dependsOn(rootProject.tasks.named('prepareRuns'))
+    task.doFirst { resultFile.delete() }
+    task.doLast {
+        if (!resultFile.exists()) {
+            throw new GradleException('Beitrittstest ohne Mob Defense (NeoForge): keine Ergebnisdatei – Spiel abgestürzt oder vorzeitig beendet?')
+        }
+        def result = resultFile.getText('UTF-8').trim()
+        if (!result.startsWith('PASS')) {
+            throw new GradleException("Beitrittstest ohne Mob Defense (NeoForge) fehlgeschlagen: ${result}")
+        }
+        logger.lifecycle("Beitrittstest ohne Mob Defense (NeoForge): ${result}")
+    }
+}
+
+tasks.named('check') {
+    dependsOn('compileJointestJava')
+}
+
+ext.mdD8Dir = 'runs/d8-server'
+
+class MdD8Stop extends InputStream {
+    private final File log
+    private long start = -1L
+    private final long settleMillis
+    private final long limitMillis
+    private byte[] bytes
+    private int index
+
+    MdD8Stop(File log, long settleMillis, long limitMillis) {
+        this.log = log
+        this.settleMillis = settleMillis
+        this.limitMillis = limitMillis
+    }
+
+    @Override
+    int read() {
+        if (bytes == null) {
+            start = System.currentTimeMillis()
+            long done = -1L
+            while (true) {
+                long now = System.currentTimeMillis()
+                String text = done < 0 && log.exists() && log.lastModified() >= start ? log.getText('UTF-8') : ''
+                if (done < 0 && text.contains('Done (') && !text.contains('[Mob-Defense-D8]')) {
+                    done = now
+                }
+                if (done >= 0 && now - done >= settleMillis || now - start >= limitMillis) {
+                    break
+                }
+                Thread.sleep(500L)
+            }
+            bytes = 'stop\n'.getBytes('UTF-8')
+        }
+        return index < bytes.length ? (bytes[index++] & 0xff) : -1
+    }
+}
+
+tasks.register('prepareServerD8') {
+    group = 'mobdefense'
+    description = 'D8: eula.txt und server.properties für die Welt mit, ohne und wieder mit Mob Defense, alte Welt weg.'
+    def dir = file(mdD8Dir)
+    outputs.upToDateWhen { false }
+    doLast {
+        dir.mkdirs()
+        new File(dir, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        new File(dir, 'server.properties').setText([
+                'online-mode=false',
+                "server-port=${25631 + (System.getenv('PROPWASH_MC_SLOT') ?: '0').toInteger()}".toString(),
+                'level-type=minecraft\\:flat',
+                'generator-settings={"layers"\\:[{"block"\\:"minecraft\\:bedrock","height"\\:1},{"block"\\:"minecraft\\:dirt","height"\\:2},{"block"\\:"minecraft\\:grass_block","height"\\:1}],"biome"\\:"minecraft\\:plains"}',
+                'generate-structures=false',
+                'spawn-protection=16',
+                'view-distance=4',
+                'simulation-distance=4',
+                'sync-chunk-writes=true',
+        ].join('\n') + '\n', 'UTF-8')
+        new File(dir, 'world').deleteDir()
+        ['d8-prepare.properties', 'd8-noaddon.txt', 'mobdefense-selftest-result.txt'].each { new File(dir, it).delete() }
+    }
+}
+
+neoForge {
+    runs {
+        serverD8Prepare {
+            server()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(mdD8Dir))
+            systemProperty('mobdefense.d8', 'prepare')
+            programArgument('--nogui')
+        }
+        serverD8NoAddon {
+            server()
+            sourceSet = sourceSets.jointest
+            loadedMods = [mods.mobdefense_jointest]
+            gameDirectory = this.mkdir(this.file(mdD8Dir))
+            programArgument('--nogui')
+        }
+        serverD8Verify {
+            server()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(mdD8Dir))
+            systemProperty('mobdefense.d8', 'verify')
+            programArgument('--nogui')
+        }
+    }
+}
+
+def mdD8Sha = { File f -> f.exists() ? java.security.MessageDigest.getInstance('SHA-256').digest(f.bytes).encodeHex().toString() : 'fehlt' }
+
+tasks.matching { it.name in ['runServerD8Prepare', 'runServerD8Verify'] }.configureEach { task ->
+    def resultFile = file("${mdD8Dir}/mobdefense-selftest-result.txt")
+    task.group = 'mobdefense'
+    task.doFirst { resultFile.delete() }
+    task.doLast {
+        if (!resultFile.exists()) {
+            throw new GradleException("D8 ${task.name} (NeoForge): keine Ergebnisdatei – Server abgestürzt oder vorzeitig beendet?")
+        }
+        def result = resultFile.getText('UTF-8').trim()
+        if (!result.startsWith('PASS')) {
+            throw new GradleException("D8 ${task.name} (NeoForge) fehlgeschlagen: ${result}")
+        }
+        logger.lifecycle("D8 ${task.name} (NeoForge): ${result}")
+    }
+}
+
+tasks.matching { it.name == 'runServerD8Prepare' }.configureEach {
+    dependsOn('prepareServerD8')
+}
+
+tasks.matching { it.name == 'runServerD8NoAddon' }.configureEach { task ->
+    def entities = file("${mdD8Dir}/world/dimensions/minecraft/overworld/entities/r.0.0.mca")
+    def noAddon = file("${mdD8Dir}/d8-noaddon.txt")
+    def latest = file("${mdD8Dir}/logs/latest.log")
+    task.group = 'mobdefense'
+    task.mustRunAfter('runServerD8Prepare')
+    task.standardInput = new MdD8Stop(latest, 20000L, 300000L)
+    def before = [:]
+    task.doFirst {
+        noAddon.delete()
+        if (!file("${mdD8Dir}/d8-prepare.properties").exists()) {
+            throw new GradleException('D8 ohne Mob Defense (NeoForge): zuerst runServerD8Prepare')
+        }
+        before.sha = mdD8Sha(entities)
+    }
+    task.doLast {
+        def after = mdD8Sha(entities)
+        def lines = latest.exists() ? latest.readLines('UTF-8') : []
+        def mobDefense = lines.findAll { it.contains('Mob Defense') && it.contains('geladen') }
+        def errors = lines.findAll { it =~ /\/(ERROR|FATAL)\]/ }
+        if (!mobDefense.isEmpty()) {
+            throw new GradleException("D8 ohne Mob Defense (NeoForge): Mob Defense wurde doch geladen: ${mobDefense.first()}")
+        }
+        if (before.sha == after) {
+            throw new GradleException('D8 ohne Mob Defense (NeoForge): dimensions/minecraft/overworld/entities/r.0.0.mca unverändert, die Drohne wurde ohne das Add-on nicht geladen und gespeichert')
+        }
+        noAddon.setText(["Server ohne Mob Defense gestartet und gestoppt", "Drohnen-Chunk neu gespeichert", "${errors.size()} Fehlerzeilen im Log"].join('\n') + '\n', 'UTF-8')
+        logger.lifecycle("D8 ohne Mob Defense (NeoForge): Drohnen-Chunk neu gespeichert, ${errors.size()} Fehlerzeilen im Log${errors.isEmpty() ? '' : ', erste: ' + errors.first()}")
+    }
+}
+
+tasks.matching { it.name == 'runServerD8Verify' }.configureEach {
+    mustRunAfter('runServerD8NoAddon')
+}
+
+ext.mdD6Dir = 'runs/d6-server'
+
+tasks.register('prepareServerD6') {
+    group = 'mobdefense'
+    description = 'D6: eula.txt und server.properties für den Lasttest (flache Welt, keine Pause ohne Spieler), alte Welt und Ergebnisse weg.'
+    def dir = file(mdD6Dir)
+    outputs.upToDateWhen { false }
+    doLast {
+        dir.mkdirs()
+        new File(dir, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        new File(dir, 'server.properties').setText([
+                'online-mode=false',
+                "server-port=${25631 + (System.getenv('PROPWASH_MC_SLOT') ?: '0').toInteger()}".toString(),
+                'level-type=minecraft\\:flat',
+                'generator-settings={"layers"\\:[{"block"\\:"minecraft\\:bedrock","height"\\:1},{"block"\\:"minecraft\\:dirt","height"\\:2},{"block"\\:"minecraft\\:grass_block","height"\\:1}],"biome"\\:"minecraft\\:plains"}',
+                'generate-structures=false',
+                'spawn-protection=0',
+                'difficulty=normal',
+                'pause-when-empty-seconds=0',
+                'view-distance=6',
+                'simulation-distance=5',
+                'sync-chunk-writes=false',
+        ].join('\n') + '\n', 'UTF-8')
+        new File(dir, 'world').deleteDir()
+        ['mobdefense-selftest-result.txt', 'mobdefense-d6-result.txt', 'jointest.stop', 'mobdefense-classload.log'].each { new File(dir, it).delete() }
+    }
+}
+
+neoForge {
+    runs {
+        serverD6 {
+            server()
+            sourceSet = sourceSets.devtest
+            gameDirectory = this.mkdir(this.file(mdD6Dir))
+            systemProperty('mobdefense.serversmoke', 'true')
+            systemProperty('mobdefense.d6', 'true')
+            environment('MOBDEFENSE_JOINTEST_HOLD', '900')
+            def classLog = file("${mdD6Dir}/mobdefense-classload.log").absolutePath
+            jvmArgument("-Xlog:class+load=info:file=${classLog}:none")
+            systemProperty('mobdefense.classlog', classLog)
+            programArgument('--nogui')
+        }
+    }
+}
+
+tasks.matching { it.name == 'runServerD6' }.configureEach { task ->
+    def smokeFile = file("${mdD6Dir}/mobdefense-selftest-result.txt")
+    def resultFile = file("${mdD6Dir}/mobdefense-d6-result.txt")
+    task.group = 'mobdefense'
+    task.dependsOn('prepareServerD6')
+    task.doLast {
+        if (!resultFile.exists()) {
+            throw new GradleException('D6 (NeoForge): keine Ergebnisdatei – Server abgestürzt oder vorzeitig beendet?')
+        }
+        def result = resultFile.getText('UTF-8').trim()
+        def smoke = smokeFile.exists() ? smokeFile.getText('UTF-8').trim() : 'fehlt'
+        def logFile = file("${mdD6Dir}/logs/latest.log")
+        def bad = logFile.exists() ? logFile.readLines('UTF-8').findAll { line ->
+            line =~ /\/(ERROR|FATAL)\]/ || line.contains('MixinApplyError') || line.contains('Mixin apply failed')
+        } : ['kein logs/latest.log']
+        if (!result.startsWith('PASS')) {
+            throw new GradleException("D6 (NeoForge) fehlgeschlagen: ${result}")
+        }
+        if (!smoke.startsWith('PASS')) {
+            throw new GradleException("D6 (NeoForge): Server-Prüfungen fehlgeschlagen: ${smoke}")
+        }
+        if (!bad.isEmpty()) {
+            throw new GradleException("D6 (NeoForge): ${bad.size()} Fehlerzeilen im Log, erste: ${bad.first()}")
+        }
+        logger.lifecycle("D6 (NeoForge): ${result}")
+    }
+}

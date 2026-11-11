@@ -1,0 +1,25 @@
+{
+  "parent": "mobdefense:root",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.mobdefense.recoil.description"
+    },
+    "frame": "task",
+    "icon": {
+      "id": "minecraft:wind_charge"
+    },
+    "title": {
+      "translate": "advancements.mobdefense.recoil.title"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

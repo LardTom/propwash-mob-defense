@@ -1,0 +1,13 @@
+{
+  "mobdefense.action.dispenser.fire": "Fire dispenser",
+  "mobdefense.action.dispenser.next_slot": "Next slot",
+  "mobdefense.settings.title": "Mob Defense",
+  "mobdefense.settings.dispenser": "Dispenser mount",
+  "mobdefense.settings.dispenser.delay": "Delay before continuous fire",
+  "mobdefense.settings.dispenser.delay.tooltip": "While accessory action 1 is held: time between the first and the second shot, never shorter than the time between shots. A short press fires exactly once.",
+  "mobdefense.settings.dispenser.interval": "Time between shots",
+  "mobdefense.settings.dispenser.interval.tooltip": "Shortest time between two shots, in continuous fire and for single presses alike, at least %s ms. The world rule “Dispenser cooldown” can demand more.",
+  "mobdefense.settings.dispenser.millis": "%s ms",
+  "mobdefense.settings.dispenser.rule": "In this world at least %s ms pass between two shots (world rule “Dispenser cooldown”).",
+  "mobdefense.settings.file": "Saved on this computer in config/%s and used on every server with Mob Defense."
+}

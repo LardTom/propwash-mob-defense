@@ -1,0 +1,13 @@
+{
+  "mobdefense.action.dispenser.fire": "Dispenser feuern",
+  "mobdefense.action.dispenser.next_slot": "Nächster Slot",
+  "mobdefense.settings.title": "Mob Defense",
+  "mobdefense.settings.dispenser": "Dispenser-Halterung",
+  "mobdefense.settings.dispenser.delay": "Anlauf bis zum Dauerfeuer",
+  "mobdefense.settings.dispenser.delay.tooltip": "Solange Zubehör-Aktion 1 gehalten wird: Zeit zwischen erstem und zweitem Schuss, nie kürzer als der Abstand. Ein kurzer Druck feuert genau einmal.",
+  "mobdefense.settings.dispenser.interval": "Abstand im Dauerfeuer",
+  "mobdefense.settings.dispenser.interval.tooltip": "Kürzeste Zeit zwischen zwei Schüssen, im Dauerfeuer wie bei einzelnen Drücken, mindestens %s ms. Die Welt-Regel „Abklingzeit des Dispensers“ kann mehr verlangen.",
+  "mobdefense.settings.dispenser.millis": "%s ms",
+  "mobdefense.settings.dispenser.rule": "In dieser Welt liegen mindestens %s ms zwischen zwei Schüssen (Welt-Regel „Abklingzeit des Dispensers“).",
+  "mobdefense.settings.file": "Gespeichert auf diesem Rechner in config/%s, gilt auf jedem Server mit Mob Defense."
+}

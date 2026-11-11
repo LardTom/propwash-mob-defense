@@ -1,0 +1,37 @@
+{
+  "criteria": {
+    "has_accessory": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "mobdefense:dispenser_mount",
+              "mobdefense:spear_mount",
+              "mobdefense:rocket_booster"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.mobdefense.root.description"
+    },
+    "icon": {
+      "id": "mobdefense:dispenser_mount"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "advancements.mobdefense.root.title"
+    }
+  },
+  "requirements": [
+    [
+      "has_accessory"
+    ]
+  ]
+}
